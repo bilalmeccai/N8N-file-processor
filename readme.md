@@ -1,161 +1,128 @@
-This workflow takes an uploaded invoice PDF from an n8n Form Trigger, extracts the text, converts it into a structured XML based on a predefined invoice schema using Google Gemini, cleans the XML, and finally converts it into JSON for downstream processing.
+Invoice PDF to JSON - n8n Workflow
+A simple n8n workflow that converts PDF invoices into structured JSON data using AI-powered text extraction and Google Gemini.
 
-Overview
-Input: Invoice PDF file uploaded via n8n Form Trigger.
-​
+What This Workflow Does
+Upload a PDF invoice through a web form → Extract text → AI converts it to structured data → Output clean JSON
 
-Processing:
+Use cases:
 
-Extract text from the PDF.
-​
+Automated invoice processing
 
-Normalize text and prepare an invoice XML schema template.
+Accounts payable automation
 
-Use Google Gemini to generate structured XML from the raw text.
-​
+Invoice data extraction for ERP systems
 
-Clean the returned XML string.
+Receipt management systems
 
-Convert XML to JSON.
+How It Works
 
-Output: JSON representation of the invoice, ready to use in later nodes (e.g., accounting, storage, validation).
+[Web Form] → [PDF Text Extraction] → [Data Cleanup] → [AI Processing] → [XML Cleanup] → [JSON Output]
 
-Workflow Structure
-Nodes (in execution order):
 
-On form submission (n8n-nodes-base.formTrigger)
+Step-by-step Process
+Form Submission: User uploads invoice PDF via web form
 
-Extract from File (n8n-nodes-base.extractFromFile)
+Text Extraction: PDF content is extracted as plain text
 
-Limpio data (n8n-nodes-base.set)
+Data Preparation: Text is cleaned and an XML template is prepared
 
-Message a model (@n8n/n8n-nodes-langchain.googleGemini)
+AI Conversion: Google Gemini AI transforms raw text into structured XML
 
-Limpio XML (n8n-nodes-base.set)
+XML Cleanup: Remove formatting artifacts from AI output
 
-XML to JSON (n8n-nodes-base.xml)
+JSON Conversion: Final structured JSON ready for use
 
-Node-by-node details
-1. On form submission
-Type: n8n-nodes-base.formTrigger.
-​
+Quick Start
+Prerequisites
+n8n instance (cloud or self-hosted)
 
-Purpose: Starts the workflow when a user submits a form with an invoice file.
+Google Gemini API key (get one here)
 
-Key configuration:
+Basic familiarity with n8n workflows
 
-formTitle: Test
+Installation Steps
+Import the workflow: Copy the workflow JSON and import it into your n8n instance
 
-formFields:
+Configure Google Gemini credentials:
 
-fieldLabel: data
+Go to Credentials in n8n
 
-fieldType: file (file upload field to receive the PDF).
+Add new credential: "Google Gemini/PaLM API"
 
-The submitted file is available as a binary property that is passed to the next node.
+Enter your API key
 
-2. Extract from File
-Type: n8n-nodes-base.extractFromFile.
-​
+Activate the workflow: Toggle the workflow to "Active"
 
-Operation: pdf
+Get the form URL: Open the "On form submission" node and copy the Form URL
 
-Purpose: Extracts text content from the uploaded PDF invoice.
+Test it: Visit the form URL, upload a sample invoice PDF, and submit
 
-Behavior:
+Workflow Configuration
+Node 1: Form Trigger
+What it does: Creates a web form to receive PDF uploads
 
-Reads the binary file from the previous node.
+Configuration:
 
-Produces a JSON field (commonly text) containing the extracted PDF text.
-​
+Form title: Test (change this to your preferred name)
 
-3. Limpio data
-Type: n8n-nodes-base.set
+Field name: data
 
-Purpose: Prepare clean text and define the XML schema template used for prompting the model.
+Field type: File upload
 
-Assignments:
+To customize:
 
-text_limpio (string)
+Update the form title to match your use case (e.g., "Invoice Upload")
 
-Value: ={{ $json.text.replace(/\n/g, ' ') }}
+Add additional form fields if needed (invoice number, vendor name, etc.)
 
-Description: Removes newlines from the extracted text to produce a single-line, cleaner version for the model prompt.
+Node 2: Extract from File
+What it does: Reads the PDF and extracts all text content
 
-estructuraXML (string)
+Configuration:
 
-Value: Static XML template:
+Operation: PDF
 
-<invoice>
-    <invoice_number>[invoice_number]</invoice_number>
-    <date_of_issue>[date_of_issue]</date_of_issue>
-    <due_date>[due_date]</due_date>
+No additional setup required
 
-    <billed_to>
-        <company_name>[billed_to.company_name]</company_name>
-        <contact_name>[billed_to.contact_name]</contact_name>
-        <address>[billed_to.address]</address>
-        <postal_code>[billed_to.postal_code]</postal_code>
-        <city>[billed_to.city]</city>
-        <state>[billed_to.state]</state>
-        <country>[billed_to.country]</country>
-        <rfc>[billed_to.rfc]</rfc>
-    </billed_to>
+Note: This works with most standard PDFs. Scanned images may require OCR preprocessing.
 
-    <from>
-        <company_name>[from.company_name]</company_name>
-        <address>[from.address]</address>
-        <postal_code>[from.postal_code]</postal_code>
-        <city>[from.city]</city>
-        <state>[from.state]</state>
-        <country>[from.country]</country>
-        <rfc>[from.rfc]</rfc>
-    </from>
+Node 3: Data Preparation
+What it does: Cleans extracted text and defines the output structure
 
-    <purchase_order>[purchase_order]</purchase_order>
+Key components:
 
-    <items>
-        <item>
-            <description>[item.description]</description>
-            <unit_cost>[item.unit_cost]</unit_cost>
-            <quantity>[item.quantity]</quantity>
-            <amount>[item.amount]</amount>
-        </item>
-    </items>
+Text cleaning: Removes line breaks and extra spaces
 
-    <bank_account_details>
-        <account_holder_name>[bank_account_details.account_holder_name]</account_holder_name>
-        <account_number>[bank_account_details.account_number]</account_number>
-        <routing_number>[bank_account_details.routing_number]</routing_number>
-        <swift_code>[bank_account_details.swift_code]</swift_code>
-        <bank_name>[bank_account_details.bank_name]</bank_name>
-        <currency>[bank_account_details.currency]</currency>
-    </bank_account_details>
+XML schema: Defines what data to extract from the invoice
 
-    <financials>
-        <subtotal>[subtotal]</subtotal>
-        <tax_rate>[tax_rate]</tax_rate>
-        <tax_amount>[tax_amount]</tax_amount>
-        <shipping_cost>[shipping_cost]</shipping_cost>
-        <invoice_total>[invoice_total]</invoice_total>
-    </financials>
-</invoice>
+To customize the schema: Edit the estructuraXML field to match your invoice format. The current schema includes:
 
-This schema defines the target XML structure for the invoice (header, parties, line items, bank details, and financial totals).
+Invoice header (number, dates)
 
-4. Message a model
-Type: @n8n/n8n-nodes-langchain.googleGemini.
-​
+Billing information (customer details)
 
-Purpose: Use a Gemini model to turn the raw invoice text into XML matching the estructuraXML schema.
+Vendor information (your company details)
 
-Key parameters:
+Line items (products/services)
 
-modelId: models/gemma-3n-e4b-it (selected from the Google Gemini models list).
-​
+Bank details
 
-messages.values[0].content:
-=Considera la transcripcion del invoice adjunta, reescribela como un XML siguiendo este esquema:
+Financial totals (subtotal, tax, total)
+
+Node 4: AI Model (Google Gemini)
+What it does: Uses AI to extract structured data from unstructured text
+
+Configuration:
+
+Model: gemma-3n-e4b-it (you can change this to other Gemini models)
+
+Prompt language: Spanish (modify the prompt for other languages)
+
+To change the language: Update the prompt in messages.values[0].content:
+
+English version:
+
+Consider the invoice transcription below and rewrite it as XML following this schema:
 
 {{ $json.estructuraXML }}
 
@@ -163,151 +130,186 @@ Invoice:
 
 {{ $json.text_limpio }}
 
-Explanation:
 
-Spanish prompt that tells the model:
+Other supported Gemini models:
 
-Consider the invoice transcription.
+gemini-pro - Best for complex invoices
 
-Rewrite it as XML following the provided schema.
+gemini-pro-vision - If you need image analysis
 
-Then includes the schema (estructuraXML) and the cleaned invoice text (text_limpio) as context.
+gemma-3n-e4b-it - Faster, good for simple invoices
 
-The node returns the model output in content.parts[0].text (standard Gemini Chat response structure).
-​
-
-5. Limpio XML
-Type: n8n-nodes-base.set
-
-Purpose: Clean the XML returned by the model so it is valid and compact before parsing.
-
-Assignment:
-
-factura_limpia (string)
-Value:
-={{ $json.content.parts[0].text
-    .replace('```xml', '')
-    .replace('```', '')
-    .replace(/(\n|\s{2,})/g, '')
-    .replace(/(\s<)/g, '<')
-    .replace(/(>\s)/g, '>')
-}}
-
-What this does:
-
-Removes Markdown code fences xml and that models often add.
-
-Removes newlines and extra whitespace.
-
-Cleans extra spaces before and after tags so the result is a compact XML string suitable for parsing.
-
-6. XML to JSON
-Type: n8n-nodes-base.xml
-
-Purpose: Parse the cleaned XML into JSON.
+Node 5: XML Cleanup
+What it does: Removes formatting artifacts from AI-generated XML
 
 Configuration:
 
-dataPropertyName: factura_limpia
+Removes markdown code fences (```xml)
 
-options:
+Strips whitespace and line breaks
 
-normalize: false
+Prepares valid XML for parsing
 
-normalizeTags: false
+No changes needed unless you modify the AI model output format.
 
-trim: false
+Node 6: XML to JSON Converter
+What it does: Converts the cleaned XML into JSON format
 
-Behavior:
+Configuration:
 
-Takes the factura_limpia field as XML input.
+Input field: factura_limpia
 
-Produces JSON output where each XML tag becomes a JSON property.
+Normalization: Disabled (preserves original structure)
 
-This JSON now contains a structured representation of the invoice (invoice header, billed_to, from, items, bank_account_details, financials).
+Output: A nested JSON object with all invoice data structured and ready to use.
 
-Input and output
-Expected input
-A form submission with:
+Expected Output
+The workflow produces a JSON object with this structure:
 
-One file field labeled data, containing the invoice PDF.
-
-Final output (high level)
-The final JSON will follow the logical structure of the XML schema, for example:
 {
   "invoice": {
     "invoice_number": "INV-1234",
-    "date_of_issue": "2025-01-15",
-    "due_date": "2025-02-15",
+    "date_of_issue": "2026-01-15",
+    "due_date": "2026-02-15",
     "billed_to": {
-      "company_name": "...",
-      "contact_name": "...",
-      "address": "...",
-      "postal_code": "...",
-      "city": "...",
-      "state": "...",
-      "country": "...",
-      "rfc": "..."
+      "company_name": "Acme Corp",
+      "contact_name": "John Doe",
+      "address": "123 Main St",
+      "postal_code": "12345",
+      "city": "Springfield",
+      "state": "IL",
+      "country": "USA",
+      "rfc": "ABC123456"
     },
     "from": {
-      "company_name": "...",
-      "address": "...",
-      "postal_code": "...",
-      "city": "...",
-      "state": "...",
-      "country": "...",
-      "rfc": "..."
+      "company_name": "Your Company Inc",
+      "address": "456 Business Ave",
+      "postal_code": "67890",
+      "city": "Chicago",
+      "state": "IL",
+      "country": "USA",
+      "rfc": "XYZ789012"
     },
-    "purchase_order": "...",
+    "purchase_order": "PO-5678",
     "items": {
       "item": {
-        "description": "...",
-        "unit_cost": "...",
-        "quantity": "...",
-        "amount": "..."
+        "description": "Consulting Services",
+        "unit_cost": "150.00",
+        "quantity": "10",
+        "amount": "1500.00"
       }
     },
     "bank_account_details": {
-      "account_holder_name": "...",
-      "account_number": "...",
-      "routing_number": "...",
-      "swift_code": "...",
-      "bank_name": "...",
-      "currency": "..."
+      "account_holder_name": "Your Company Inc",
+      "account_number": "1234567890",
+      "routing_number": "987654321",
+      "swift_code": "BANKUS33",
+      "bank_name": "Example Bank",
+      "currency": "USD"
     },
     "financials": {
-      "subtotal": "...",
-      "tax_rate": "...",
-      "tax_amount": "...",
-      "shipping_cost": "...",
-      "invoice_total": "..."
+      "subtotal": "1500.00",
+      "tax_rate": "10",
+      "tax_amount": "150.00",
+      "shipping_cost": "25.00",
+      "invoice_total": "1675.00"
     }
   }
 }
 
-Requirements and setup notes
-n8n instance with:
+Common Customizations
+1. Add validation
+After the JSON conversion, add a Code node or IF node to validate:
 
-Form Trigger node available and configured.
-​
+Required fields are present
 
-Extract From File node (core).
-​
+Totals are calculated correctly
 
-Google Gemini Chat Model node (@n8n/n8n-nodes-langchain.googleGemini).
-​
+Dates are in valid format
 
-Valid Google Gemini/PaLM API credentials configured in n8n:
+2. Save to database
+Connect a database node (PostgreSQL, MongoDB, MySQL) after the JSON output to store invoices automatically.
 
-Credential name: Google Gemini(PaLM) Api account 2 (as referenced in the workflow).
+3. Send notifications
+Add an Email or Slack node to notify your team when invoices are processed.
 
-Ensure the form’s file field name and the binary property used by Extract from File match your instance configuration.
+4. Multi-currency support
+Modify the prompt to detect and convert currencies, or add a Currency Converter node.
 
-Customization ideas
-Add validation logic after XML to JSON (e.g., check required fields, totals).
+5. Error handling
+Add error handling nodes to catch failed extractions and send them for manual review.
 
-Route invoices based on invoice_total or currency to different systems.
+Troubleshooting
+Problem: Form not receiving files
+Solution: Check that the field type is set to "file" and the form is published (workflow is active).
 
-Store the JSON in a database (Postgres, MongoDB) or send it to an external API.
+Problem: PDF extraction returns empty text
+Solution: The PDF may be image-based. Add an OCR preprocessing step before extraction.
 
-Localize or refine the model prompt for different invoice formats or languages.
+Problem: AI returns incomplete data
+Solution:
+
+Try a more powerful model (e.g., gemini-pro)
+
+Refine the prompt with examples
+
+Ensure the PDF text quality is good
+
+Problem: XML parsing fails
+Solution: Check the "Limpio XML" node output. The AI may have returned invalid XML. Adjust the cleanup regex patterns.
+
+Problem: Missing invoice fields
+Solution: Update the XML schema in Node 3 to match your invoice format exactly.
+
+Extending This Workflow
+Connect to other systems:
+
+QuickBooks, Xero, or other accounting software
+
+Google Sheets for simple tracking
+
+Airtable for collaborative invoice management
+
+Custom APIs for proprietary ERP systems
+
+Process other documents:
+
+Purchase orders
+
+Receipts
+
+Contracts
+
+Bank statements
+
+Add approval workflow:
+
+Send extracted data for human review
+
+Require manager approval before saving
+
+Track approval status and history
+
+API Credentials Setup
+Getting Google Gemini API Key
+Visit Google AI Studio
+
+Sign in with your Google account
+
+Click "Create API Key"
+
+Copy the key
+
+In n8n: Credentials → Add → Google PaLM/Gemini → Paste key
+
+Cost Considerations
+Google Gemini API pricing (as of 2026):
+
+Free tier: 60 requests per minute
+
+Paid tier: Pay per token usage
+
+For invoice processing, expect minimal costs (typically $0.01-0.05 per invoice depending on PDF size).
+
+License
+This workflow is provided as-is for use with n8n. Modify and adapt it to your needs.
